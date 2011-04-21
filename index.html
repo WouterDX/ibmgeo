@@ -1,75 +1,159 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta charset='utf-8'>
-
-  <title>WouterDX/ibmgeo @ GitHub</title>
-
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #b9cb37;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #000000;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #4634c8; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #4634c8; }
-    h3 { text-align: center; color: #4634c8; }
-    a { color: #4634c8; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
-</head>
-
-<body>
-  <a href="http://github.com/WouterDX/ibmgeo"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
-
-  <div id="container">
-
-    <div class="download">
-      <a href="http://github.com/WouterDX/ibmgeo/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/WouterDX/ibmgeo/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-    </div>
-
-    <h1><a href="http://github.com/WouterDX/ibmgeo">ibmgeo</a>
-      <span class="small">by <a href="http://github.com/WouterDX">WouterDX</a></span></h1>
-
-    <div class="description">
-      
-    </div>
-
-    <h2>Contact</h2>
-<p> (wouter.dierckx@gmail.com)<br/>      </p>
-
-
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="http://github.com/WouterDX/ibmgeo/zipball/master">zip</a> or
-      <a href="http://github.com/WouterDX/ibmgeo/tarball/master">tar</a> formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/WouterDX/ibmgeo</pre>
-    </p>
-
-    <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/WouterDX/ibmgeo">WouterDX/ibmgeo</a>
-    </div>
-
-  </div>
-
-  
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name = "viewport" content = "width = device-width"/>
+        <title>Local Twitter Search</title>
+        <script type="text/javascript">
+            function $(id){
+        		return document.getElementById(id);
+        	}
+        	function startSearch(){
+        		var gps = navigator.geolocation;
+        		if (gps){
+        			gps.getCurrentPosition(searchTwitter,
+        				function(error){
+        				  alert("Got an error, code: " + error.code + " message: " + 
+        						error.message);
+        			 });
+        		} else {
+                    alert("no gps enabled");
+        			searchTwitter();
+        		}
+        	}
+        	function searchTwitter(position){
+        		var query = "http://search.twitter.com/search.json?callback=showResults&q=";
+        		query += $("kwBox").value;
+        		if (position){
+        			var lat = position.coords.latitude;
+        			var long = position.coords.longitude;
+        			query += "&geocode=" + escape(lat + "," + long + ",50mi");
+        		}
+        		var script = document.createElement("script");
+        		script.src = query;
+        		document.getElementsByTagName("head")[0].appendChild(script);
+        	}
+        	function showResults(response){
+        		var tweets = response.results;
+        		tweets.forEach(function(tweet){
+        			tweet.linkUrl = "http://twitter.com/" + tweet.from_user + "/status/" + tweet.id;
+        		});
+        		makeResultsTable(tweets);
+        	}
+        	function makeResultsTable(tweets){
+        		var cnt = 1;
+        		var rows = tweets.map(function(tweet){
+        			cnt++;
+        			return createResult(tweet.from_user, tweet.profile_image_url, tweet.text, 
+        					tweet.linkUrl, cnt % 2 == 0);
+        		});
+        		$("results").innerHTML = "<table id='resultsTable'></table>";
+        		rows.forEach(function(row){
+        			$("resultsTable").appendChild(row);
+        		});
+        	}
+        	function createResult(srcName, srcImgUrl, title, linkUrl, odd){
+        	    var resultsRow = document.createElement("tr");
+        	    if (odd){
+        	        resultsRow.setAttribute("class", "odd");
+        	    }
+        	    var srcCell = document.createElement("td");
+        	    srcCell.setAttribute("class","src");
+        	    resultsRow.appendChild(srcCell);
+        	    var icon = document.createElement("img");
+        	    icon.src = srcImgUrl;
+        	    icon.setAttribute("alt", srcName);
+        	    icon.setAttribute("height", 48);
+        	    icon.setAttribute("width", 48);
+        	    srcCell.appendChild(icon);
+        	    srcCell.appendChild(document.createTextNode(srcName));
+        	    var messageCell = document.createElement("td");
+        	    messageCell.setAttribute("class","msg");
+        	    var link = document.createElement("a");
+        	    link.setAttribute("href", linkUrl);
+        	    link.setAttribute("target", "_blank");
+        	    link.appendChild(document.createTextNode(title));
+        	    messageCell.appendChild(link);
+        	    resultsRow.appendChild(messageCell);
+        	    return resultsRow;
+        	}	
+        </script>
+        <!--
+        <style type="text/css">
+        	td {
+        	    padding-top: 15px;
+        	    padding-right: 15px;
+        	    padding-bottom: 20px;
+        	    padding-left: 15px;
+        		border: 1px solid black;
+        	}
+        	table {
+        		text-align: center;
+        		border-collapse: collapse;
+        	}
+        	a:link {
+        	    text-decoration: none;
+        	    color: #f24d1b;
+        	}
+        	.msg {
+        		text-align: left;
+        	    padding-left: 8px;
+        	}
+        	tr.odd {
+        		background-color: #bce4ee;
+        	}
+        	.src {
+        	    background: url(timoreilly.gif) left center no-repeat;
+        	    text-align: right;
+        	    font-style: italic;
+        	    padding: 10px;
+        	}
+        	h1 {
+        	    font-size : medium;
+        	    font-style : inherit;
+        	    font-variant : small-caps
+        	}
+        </style>-->
+        <style type="text/css">
+            body {
+                margin-top: 1.0em;
+                background-color: #b9cb37;
+                font-family: Helvetica, Arial, FreeSans, san-serif;
+                color: #000000;
+            }
+            #code_container {
+                margin: 0 auto;
+                width: 700px;
+            }
+            h1 { font-size: 3.8em; color: #4634c8; margin-bottom: 3px; }
+            h1 .small { font-size: 0.4em; }
+            h1 a { text-decoration: none }
+            h2 { font-size: 1.5em; color: #4634c8; }
+            h3 { text-align: center; color: #4634c8; }
+            a { color: #4634c8; }
+            .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+            pre { background: #000; color: #fff; padding: 15px;}
+            hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+            .footer { text-align:center; padding-top:30px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <div id="code_container">
+            <a href="http://github.com/WouterDX/ibmgeo"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+            <h1><a href="http://github.com/WouterDX/ibmgeo">ibmgeo</a>
+                <span class="small">by <a href="http://github.com/WouterDX">WouterDX</a></span>
+            </h1>
+            <h2>Contact</h2>
+            <p> (wouter.dierckx@gmail.com)<br/>      </p>
+            <div class="footer">
+                get the source code on GitHub : <a href="http://github.com/WouterDX/ibmgeo">WouterDX/ibmgeo</a>
+            </div>
+        </div>
+    	<div id="main">
+    		<label for="kwBox">Search Twitter:</label>
+    		<input type="text" id="kwBox"/>
+    		<input type="button" value="Go!" onclick="startSearch()"/>
+    	</div>
+    	<div id="results">
+    	</div>
+    </body>
 </html>
