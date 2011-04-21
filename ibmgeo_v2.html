@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name = "viewport" content = "width = device-width"/>
+        <title>Basic Twitter Search</title>
+        <script src="json2.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            var maxId=0;
+            if(typeof(String.prototype.trim) === "undefined"){
+                String.prototype.trim = function() {
+                    return String(this).replace(/^\s+|\s+$/g, "");
+	            };
+	        }
+            window.onload = function() {
+                displayStats();
+                document.body.setAttribute("onstorage","handleOnStorage();");
+            }
+            
+            function $(id){
+            	return document.getElementById(id);
+        	}
+            
+            function displayStats() {
+                if (!window.localStorage) { return;}
+                var i=0;
+                var key="";
+                var index = [];
+                var cachedSearches =[];
+                for (i=0;i<localStorage.length;i++) {
+                    key = localStorage.key(i);
+                    if(key.indexOf("index::")==0) {
+                        index=JSON.parse(localStorage.getItem(key));
+                        cachedSearches.push({keyword: key.slice(7),numResults: index.length});
+                    }
+                }
+                cachedSearches.sort(function(a,b){
+                    if(a.numResults == b.numResults){
+                        if (a.keyword.toLowerCase() < b.keyword.toLowerCase()) {
+                            return -1;
+                        } else if (a.keyword.toLowerCase() > b.keyword.toLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                    return b.numResults-a.numResults;
+                }).slice(0,10).forEach(function(search){
+                    var li = document.createElement("li");
+                    var txt= document.createTextNode(search.keyword+" : "+search.numResults);
+                    li.appendChild(txt);
+                    $("stats").appendChild(li);
+                });
+            }
+            
+            function handleOnStorage() {
+                if (window.event && window.event.key.indexOf("index::")==0) {
+                    $("stats").innerHTML = "";
+                    displayStats();
+                }
+            }
+            function startSearch(){
+            	var gps = navigator.geolocation;
+        		if (gps){
+        			gps.getCurrentPosition(searchTwitter,
+        				function(error){
+        				  alert("Got an error, code: " + error.code + " message: " + 
+        						error.message);
+        			 });
+        		} else {
+                    alert("no gps enabled");
+        			searchTwitter();
+        		}
+        	}
+        
+            function searchTwitter(position){
+                if ($("resultsTable")){
+                    $("resultsTable").innerHTML="";//clear results
+                }
+                makeResultsTable();
+                var keyword = $("kwBox").value;
+                maxId = loadLocal(keyword);
+                var query = "http://search.twitter.com/search.json?callback=processResults&q=";
+                query += keyword;
+                
+                if (position){
+            		var lat = position.coords.latitude;
+        			var long = position.coords.longitude;
+        			query += "&geocode=" + escape(lat + "," + long + ",50mi");
+        		}
+                
+                if (maxId) {
+                    query += "&since_id=" + maxId;
+                }
+                
+        		var script = document.createElement("script");
+        		script.src = query;
+        		document.getElementsByTagName("head")[0].appendChild(script);
+            }
+            
+            function loadLocal(keyword){
+                if(!window.localStorage){
+                    return;
+                }
+                var index = localStorage.getItem("index::"+keyword);
+                var tweets = [];
+                var i = 0;
+                var tweet = {};
+                if(index){
+                    index = JSON.parse(index);
+                    for (i=0;i<index.length;i++){
+                        tweet = localStorage.getItem("tweet"+index[i]);
+                        if(tweet){
+                            tweet = JSON.parse(tweet);
+                            tweets.push(tweet);
+                        }
+                    }
+                }
+                if(tweets.length<1){
+                    return 0;
+                }
+                tweets.sort(function(a,b){
+                    return a.id-b.id;
+                });
+                addTweetsToResultsTable(tweets);
+                return tweets[0].id;
+            }
+            
+            function processResults(response){
+                var tweets = response.results;
+                var keyword = $("kwBox").value;
+                tweets.forEach(function(tweet){
+                    saveTweet(keyword, tweet);
+                    tweet.linkUrl = "http://twitter.com/" + tweet.from_user 
+                                    + "/status/" + tweet.id;
+                });
+                makeResultsTable(tweets);
+                addTweetsToResultsTable(tweets);
+            }
+            
+            function saveTweet(keyword, tweet){
+                // check if the browser supports localStorage
+                if (!window.localStorage){
+                    return;
+                }
+                if (!localStorage.getItem("tweet" + tweet.id)){
+                    localStorage.setItem("tweet" + tweet.id, JSON.stringify(tweet));
+                }
+                var index = localStorage.getItem("index::" + keyword);
+                if (index){
+                    index = JSON.parse(index);
+                } else {
+                    index = [];
+                }
+                if (!index.contains(tweet.id)){
+                    index.push(tweet.id);
+                    localStorage.setItem("index::"+keyword, JSON.stringify(index));
+                } 
+            }
+            function makeResultsTable(){
+            	var html = $("results").innerHTML;
+        		html = String(html).trim();
+        		if (!html || html.length < 1){
+        			$("results").innerHTML = "<table id='resultsTable'></table>";
+        		}
+        	}
+            
+        	function addTweetsToResultsTable(tweets, insert){
+        		makeResultsTable();
+        		var cnt = 1;
+        		var rows = tweets.map(function(tweet){
+        			cnt++;
+        			return createResult(tweet.from_user, tweet.profile_image_url, tweet.text, 
+        					tweet.linkUrl, cnt % 2 == 0);
+        		});
+        		var resultsTable = $("resultsTable");
+        		if (maxId){
+        			rows.reverse();
+        			rows.forEach(function(row){
+        				var rowOne = resultsTable.firstChild;
+        				resultsTable.insertBefore(row, rowOne);
+        			});
+        		} else {
+        			rows.forEach(function(row){
+        				resultsTable.appendChild(row);
+        			});
+        		}
+        	}
+        	function createResult(srcName, srcImgUrl, title, linkUrl, odd){
+        	    var resultsRow = document.createElement("tr");
+        	    if (odd){
+        	        resultsRow.setAttribute("class", "odd");
+        	    }
+        	    var srcCell = document.createElement("td");
+        	    srcCell.setAttribute("class","src");
+        	    resultsRow.appendChild(srcCell);
+        	    var icon = document.createElement("img");
+        	    icon.src = srcImgUrl;
+        	    icon.setAttribute("alt", srcName);
+        	    icon.setAttribute("height", 48);
+        	    icon.setAttribute("width", 48);
+        	    srcCell.appendChild(icon);
+        	    srcCell.appendChild(document.createTextNode(srcName));
+        	    var messageCell = document.createElement("td");
+        	    messageCell.setAttribute("class","msg");
+        	    var link = document.createElement("a");
+        	    link.setAttribute("href", linkUrl);
+        	    link.setAttribute("target", "_blank");
+        	    link.appendChild(document.createTextNode(title));
+        	    messageCell.appendChild(link);
+        	    resultsRow.appendChild(messageCell);
+        	    return resultsRow;
+        	}	            
+            
+        </script>
+        <style type="text/css">
+            body {
+                margin-top: 1.0em;
+                background-color: #b9cb37;
+                font-family: Helvetica, Arial, FreeSans, san-serif;
+                color: #000000;
+            }
+            #code_container {
+                margin: 0 auto;
+                width: 700px;
+            }
+            h1 { font-size: 3.8em; color: #4634c8; margin-bottom: 3px; }
+            h1 .small { font-size: 0.4em; }
+            h1 a { text-decoration: none }
+            h2 { font-size: 1.5em; color: #4634c8; }
+            h3 { text-align: center; color: #4634c8; }
+            a { color: #4634c8; }
+            .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+            pre { background: #000; color: #fff; padding: 15px;}
+            hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+            .footer { text-align:center; padding-top:30px; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <div id="code_container">
+            <a href="http://github.com/WouterDX/ibmgeo"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+            <h1><a href="http://github.com/WouterDX/ibmgeo">ibmgeo</a>
+                <span class="small">by <a href="http://github.com/WouterDX">WouterDX</a></span>
+            </h1>
+            <h2>Contact</h2>
+            <p> (wouter.dierckx@gmail.com)<br/>      </p>
+            <div class="footer">
+                get the source code on GitHub : <a href="http://github.com/WouterDX/ibmgeo">WouterDX/ibmgeo</a>
+            </div>
+        </div>
+        <div id="main">
+            <label for="kwBox">Search Twitter:</label>
+            <input type="text" id="kwBox"/>
+            <input type="button" value="Go!" onclick="startSearch()"/>
+        </div>
+        <div> Your top 10 searches
+            <ol id="stats"></ol>
+        </div>
+        <div id="results">
+        </div>
+    </body>
+</html>

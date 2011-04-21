@@ -19,26 +19,32 @@
                     alert("no gps enabled");
         			searchTwitter();
         		}
-        	}
+        	}            
+            
         	function searchTwitter(position){
-        		var query = "http://search.twitter.com/search.json?callback=showResults&q=";
-        		query += $("kwBox").value;
+                var keyword = $("kwBox").value;
+        		
+                var query = "http://search.twitter.com/search.json?callback=showResults&q=";
+        		query += keyword;
         		if (position){
         			var lat = position.coords.latitude;
         			var long = position.coords.longitude;
         			query += "&geocode=" + escape(lat + "," + long + ",50mi");
         		}
+              
         		var script = document.createElement("script");
         		script.src = query;
         		document.getElementsByTagName("head")[0].appendChild(script);
         	}
-        	function showResults(response){
-        		var tweets = response.results;
+            
+        	function showResults(response){ //<!--slight modification to store results-->
+        		var tweets = response.results;            
         		tweets.forEach(function(tweet){
         			tweet.linkUrl = "http://twitter.com/" + tweet.from_user + "/status/" + tweet.id;
         		});
         		makeResultsTable(tweets);
         	}
+            
         	function makeResultsTable(tweets){
         		var cnt = 1;
         		var rows = tweets.map(function(tweet){
@@ -75,7 +81,7 @@
         	    messageCell.appendChild(link);
         	    resultsRow.appendChild(messageCell);
         	    return resultsRow;
-        	}	
+        	}            
         </script>
         <!--
         <style type="text/css">

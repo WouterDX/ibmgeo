@@ -1,0 +1,138 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name = "viewport" content = "width = device-width, initial-scale=1.0, user-scalable=no"/>
+        <title>Tracker device</title>
+        <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=true"></script>
+        <script type="text/javascript">
+            function $(id){
+                return document.getElementById(id);
+	        }
+            var trackerId = 0;
+            var geocoder;
+            var theUser ={};
+            var map={};
+            function init(){
+                geocoder = new google.maps.Geocoder();
+        		var gps = navigator.geolocation;
+        		if (gps){
+        			gps.getCurrentPosition(function(pos){
+                        var latLng = new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude);
+                        var mapcfg = {zoom:12, center:latLng, mapTypeId:google.maps.MapTypeId.ROADMAP};
+                        map = new google.maps.Map($("map_canvas"), mapcfg);
+                        theUser = new google.maps.Marker({
+                            position: latLng,
+                            map: map,
+                            title:"You!"
+                        });
+                        showLocation(pos);
+        			});
+                    trackerId = gps.watchPosition(function(pos){
+                        var latLng = new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude);
+                        map.setCenter(latLng);
+                        theUser.setPosition(latLng);
+                        showLocation(pos);
+                    });
+        		} else {
+                    alert("no gps enabled");
+        		}
+        	}
+            function showLocation(pos){
+                var latLng = new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude);
+                if (geocoder) {
+                    geocoder.geocode({'latLng': latLng}, function(results, status) {
+                        if (status == google.maps.GeocoderStatus.OK) {
+                            if(results[1]){
+                                $("location").innerHTML = results[1].formatted_address;
+                            }
+                        }
+                    });
+                }
+            }
+            function stopTracking(){
+                if(trackerId){
+                    navigator.geolocation.clearWatch(trackerId);
+                }
+            }
+        </script>
+        <!--
+        <style type="text/css">
+        	td {
+        	    padding-top: 15px;
+        	    padding-right: 15px;
+        	    padding-bottom: 20px;
+        	    padding-left: 15px;
+        		border: 1px solid black;
+        	}
+        	table {
+        		text-align: center;
+        		border-collapse: collapse;
+        	}
+        	a:link {
+        	    text-decoration: none;
+        	    color: #f24d1b;
+        	}
+        	.msg {
+        		text-align: left;
+        	    padding-left: 8px;
+        	}
+        	tr.odd {
+        		background-color: #bce4ee;
+        	}
+        	.src {
+        	    background: url(timoreilly.gif) left center no-repeat;
+        	    text-align: right;
+        	    font-style: italic;
+        	    padding: 10px;
+        	}
+        	h1 {
+        	    font-size : medium;
+        	    font-style : inherit;
+        	    font-variant : small-caps
+        	}
+        </style>-->
+        <style type="text/css">
+            body {
+                margin-top: 1.0em;
+                background-color: #b9cb37;
+                font-family: Helvetica, Arial, FreeSans, san-serif;
+                color: #000000;
+            }
+            #code_container {
+                margin: 0 auto;
+                width: 700px;
+            }
+            h1 { font-size: 3.8em; color: #4634c8; margin-bottom: 3px; }
+            h1 .small { font-size: 0.4em; }
+            h1 a { text-decoration: none }
+            h2 { font-size: 1.5em; color: #4634c8; }
+            h3 { text-align: center; color: #4634c8; }
+            a { color: #4634c8; }
+            .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+            pre { background: #000; color: #fff; padding: 15px;}
+            hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+            .footer { text-align:center; padding-top:30px; font-style: italic; }
+        </style>
+    </head>
+    <body style="margin:0px; padding:0px;" onload="init()">
+        <div id="code_container">
+            <a href="http://github.com/WouterDX/ibmgeo"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+            <h1><a href="http://github.com/WouterDX/ibmgeo">ibmgeo</a>
+                <span class="small">by <a href="http://github.com/WouterDX">WouterDX</a></span>
+            </h1>
+            <h2>Contact</h2>
+            <p> (wouter.dierckx@gmail.com)<br/>      </p>
+            <div class="footer">
+                get the source code on GitHub : <a href="http://github.com/WouterDX/ibmgeo">WouterDX/ibmgeo</a>
+            </div>
+        </div>
+    	<div id="superbar">
+            <span class="msg">Current location:
+                <span id="location"</span>
+            </span>
+            <input type="button" value="Stop tracking me!" onclick="stopTracking()"/>
+        </div>
+        <div id="map_canvas" style="width:100%; height:90%; float:left; border: 1px solid black;">
+        </div>
+    </body>
+</html>
