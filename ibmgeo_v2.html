@@ -142,19 +142,21 @@
                 if (!window.localStorage){
                     return;
                 }
-                if (!localStorage.getItem("tweet" + tweet.id)){
-                    localStorage.setItem("tweet" + tweet.id, JSON.stringify(tweet));
+                // save the tweet
+                if (localStorage.getItem("tweet" + tweet.id)) {
+                    //already stored it, so return
+                    return;
                 }
+                localStorage.setItem("tweet" + tweet.id, JSON.stringify(tweet));
+                
                 var index = localStorage.getItem("index::" + keyword);
                 if (index){
                     index = JSON.parse(index);
                 } else {
                     index = [];
                 }
-                if (!index.contains(tweet.id)){
-                    index.push(tweet.id);
-                    localStorage.setItem("index::"+keyword, JSON.stringify(index));
-                } 
+                index.push(tweet.id);
+                localStorage.setItem("index::"+keyword, JSON.stringify(index));
             }
             function makeResultsTable(){
             	var html = $("results").innerHTML;
@@ -177,7 +179,7 @@
         			rows.reverse();
         			rows.forEach(function(row){
         				var rowOne = resultsTable.firstChild;
-        				resultsTable.insertBefore(row, rowOne);
+            			resultsTable.insertBefore(row, rowOne);
         			});
         		} else {
         			rows.forEach(function(row){
